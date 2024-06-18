@@ -16,7 +16,7 @@ Data was collected from various sources including the Chicago Atlas and equivale
 **Results**
 The results of the analysis indicate significant correlations between lead exposure and various socioeconomic and environmental factors. Specific demographic groups and geographic regions were identified as being at heightened risk for lead exposure.
 
-**Clustering Results:** High lead exposure clusters were identified in specific urban areas.
+**Clustering Results** : High lead exposure clusters were identified in specific urban areas.
 Regression Results: Significant predictors of lead exposure include socioeconomic status, proximity to industrial sites, and housing age.
 Spatial Analysis Results: Geographic mapping of lead levels highlighted areas with elevated exposure.
 
