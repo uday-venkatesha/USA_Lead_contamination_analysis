@@ -1,0 +1,232 @@
+
+
+
+
+
+
+
+
+```{r}
+# Install and load the dplyr package if not already installed
+ install.packages("dplyr")
+library(dplyr)
+
+# Sample dataset
+# Replace this with your actual dataset
+n=read.csv('/Users/nigel/Downloads/nyc3.csv')
+# Calculate the sum of lead levels for each county
+
+n <- n[complete.cases(n), ]
+n2 <- n[n$Year >= 2016 & n$Year <= 2020, ]
+
+
+n2
+```
+
+
+```{r}
+file_path <- "/Users/nigel/Downloads/nyc5.csv"
+write.csv(n2, file = file_path, row.names = FALSE)
+cat("Dataframe exported to", file_path, "\n")
+
+```
+
+```{r}
+library(dplyr)
+
+sum_by_county <- n %>% 
+  group_by(County) %>%
+  summarize(total_lead_levels = sum(Less.than.5.mcg.dL))
+n <- n  %>% left_join(sum_by_county, by = "County")
+n$lead_levels <- n$total_lead_levels
+n <- select(n, -total_lead_levels)
+print(n)
+
+
+```
+
+
+
+```{r}
+# Install and load the dplyr package if not already installed
+# install.packages("dplyr")
+library(dplyr)
+
+# Sample dataframe
+# Replace this with your actual dataframe
+your_dataframe <- read.csv("/Users/nigel/Downloads/nyc5.csv")
+
+# Get unique counties in the dataframe
+unique_counties <- unique(your_dataframe$County)
+
+# Loop through each unique county
+for (target_county in unique_counties) {
+  # Calculate the sum of values in column Tests for the current county
+  sum_for_county <- your_dataframe %>%
+    filter(County == target_county) %>%
+    summarize(sum_Tests = sum(Tests)) %>%
+    pull(sum_Tests)
+  
+  # Replace values in column Tests for the current county with the sum
+  your_dataframe <- your_dataframe %>%
+    mutate(Tests = ifelse(County == target_county, sum_for_county, Tests))
+}
+
+# Print the modified dataframe
+print(your_dataframe)
+
+```
+
+
+```{r}
+# Install and load the dplyr package if not already installed
+# install.packages("dplyr")
+library(dplyr)
+
+# Sample dataframe
+# Replace this with your actual dataframe
+your_dataframe <-read.csv("/Users/nigel/Downloads/nyc5.csv")
+
+# Get unique counties in the dataframe
+unique_counties <- unique(your_dataframe$County)
+
+# Specify the columns to sum
+columns_to_sum <- c(
+  "Tests", 
+  "Less.than.5.mcg.dL", 
+  "X5.10.mcg.dL", 
+  "X10...15.mcg.dL", 
+  "X15...mcg.dL", 
+  "Total.Elevated.Blood.Levels", 
+  "Percent", 
+  "Rate.per.1.000"
+)
+```
+
+
+```{r}
+library(dplyr)
+
+# Sample dataframe
+# Replace this with your actual dataframe
+your_dataframe <-read.csv("/Users/nigel/Downloads/nyc5.csv")
+
+# Get unique counties in the dataframe
+unique_counties <- unique(your_dataframe$County)
+
+# Specify the columns to sum
+columns_to_sum <- c(
+  "Tests", 
+  "Less.than.5.mcg.dL", 
+  "X5.10.mcg.dL", 
+  "X10...15.mcg.dL", 
+  "X15...mcg.dL", 
+  "Total.Elevated.Blood.Levels", 
+  "Percent", 
+  "Rate.per.1.000"
+)
+
+# Loop through each unique county
+for (target_county in unique_counties) {
+  # Identify rows for the current county
+  county_rows <- your_dataframe$County == target_county
+  
+  # Calculate the sum of values in specified columns for the current county
+  sum_for_county <- colSums(your_dataframe[county_rows, columns_to_sum], na.rm = TRUE)
+  
+  # Replace values in specified columns for the current county with the sum
+  your_dataframe[county_rows, columns_to_sum] <- sum_for_county
+}
+
+# Print the modified dataframe
+print(your_dataframe)
+```
+
+
+```{r}
+library(dplyr)
+
+# Sample dataframe
+# Replace this with your actual dataframe
+your_dataframe <-read.csv("/Users/nigel/Downloads/nyc5.csv")
+
+# Get unique counties and years in the dataframe
+unique_counties <- unique(your_dataframe$County)
+unique_years <- unique(your_dataframe$Year)  # Assuming you have a 'Year' column in your dataframe
+
+# Specify the columns to sum
+columns_to_sum <- c(
+  "Tests", 
+  "Less.than.5.mcg.dL", 
+  "X5.10.mcg.dL", 
+  "X10...15.mcg.dL", 
+  "X15...mcg.dL", 
+  "Total.Elevated.Blood.Levels", 
+  "Percent", 
+  "Rate.per.1.000"
+)
+
+# Loop through each unique county and year
+for (target_county in unique_counties) {
+  for (target_year in unique_years) {
+    # Identify rows for the current county and year
+    county_year_rows <- your_dataframe$County == target_county & your_dataframe$Year == target_year
+    
+    # Calculate the sum of values in specified columns for the current county and year
+    sum_for_county_year <- colSums(your_dataframe[county_year_rows, columns_to_sum], na.rm = TRUE)
+    
+    # Replace values in specified columns for the current county and year with the sum
+    your_dataframe[county_year_rows, columns_to_sum] <- sum_for_county_year
+  }
+}
+
+your_dataframe <- your_dataframe %>%
+  arrange(County)
+
+# Print the modified dataframe
+print(your_dataframe)
+
+```
+
+
+
+```{r}
+# Install and load the dplyr package if not already installed
+# install.packages("dplyr")
+library(dplyr)
+
+# Sample dataframe
+# Replace this with your actual dataframe
+your_dataframe <- read.csv("/Users/nigel/Downloads/nyc5.csv")
+
+# Columns to drop
+columns_to_drop <- c("Tests","X5.10.mcg.dL","X15...mcg.dL","Less.than.5.mcg.dL", "X10...15.mcg.dL","Total.Elevated.Blood.Levels","Percent","Rate.per.1.000")
+
+# Drop selected columns
+your_dataframe <- your_dataframe %>%
+  select(-one_of(columns_to_drop))
+
+your_dataframe <- your_dataframe %>%
+  distinct()
+
+# Print the modified dataframe
+print(your_dataframe)
+
+```
+
+
+
+```{r}
+your_dataframe <- read.csv("/Users/nigel/Downloads/nyc8.csv")
+your_dataframe$Per.Capita.Income <- as.integer(gsub(",", "", your_dataframe$Per.Capita.Income))
+your_dataframe
+```
+
+
+```{r}
+file_path <- "/Users/nigel/Downloads/nyc_clean.csv"
+write.csv(your_dataframe, file = file_path, row.names = FALSE)
+cat("Dataframe exported to", file_path, "\n")
+```
+
+

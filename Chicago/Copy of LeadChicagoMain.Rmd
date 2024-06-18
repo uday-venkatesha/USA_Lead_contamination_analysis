@@ -1,0 +1,1030 @@
+---
+title: "ChicagoLeadPoisoining"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+date: "2023-11-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+# Read the CSV file
+data <- read.csv('/Users/tejaswiniviswanath/Downloads/DPA/Chicago Lead Poisoning Dataset - Community areas.csv')
+
+```
+
+```{r}
+
+str(data)
+
+```
+
+
+```{r}
+summary(data)
+
+```
+
+
+```{r}
+# Load required libraries
+library(ggplot2)
+library(tidyr)
+
+# Convert data to long format for easier plotting
+data_long <- pivot_longer(data, cols = starts_with("Num_Of_Children_With_EBLL_"), names_to = "Year", values_to = "Num_Of_Children_With_EBLL_Level")
+
+# Convert 'Year' to numeric (assuming it's stored as a character)
+data_long$Year <- as.factor(gsub("Num_Of_Children_With_EBLL_", "", data_long$Year))
+
+# Generate a dynamic color palette based on the number of unique years
+line_colors <- scales::hue_pal()(length(unique(data_long$Year)))
+
+# Plot the time series with enhanced aesthetics
+ggplot(data_long, aes(x = Year, y = Num_Of_Children_With_EBLL_Level, group = 1)) +
+  geom_line(aes(color = Year), linewidth = 1.5) +
+  geom_point(aes(color = Year), size = 2.5) +
+  scale_color_manual(values = line_colors) +
+  labs(title = "Temporal Analysis of Number Of Children With EBLL",
+       x = "Year",
+       y = "Number Of Children With EBLL",
+       caption = "Source: Your Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        axis.title.y = element_text(margin = margin(r = 10)),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+```
+```{r}
+library(ggplot2)
+
+# Calculate the percentage of children with elevated blood lead levels for each county in 2017
+data$Percent_Children_Elevated_BLL_2017 <- 
+  (data$Num_Of_Children_With_EBLL_2017 / data$Population) * 100
+
+# Select the top 10 counties
+top_10_counties <- head(data[order(-data$Percent_Children_Elevated_BLL_2017), ], 10)
+
+# Create a ggplot bar plot with unique colors for each county
+ggplot(top_10_counties, aes(x = reorder(Name, Percent_Children_Elevated_BLL_2017), 
+                             y = Percent_Children_Elevated_BLL_2017, fill = Name)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top 10 Counties with Highest Percent of Children with EBLLs in 2017",
+       x = "County",
+       y = "Percentage of Children with EBLLs") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_discrete()  # This ensures unique colors for each county
+
+```
+
+```{r}
+
+library(ggplot2)
+
+# Assuming your dataset is named 'data'
+# Calculate the percentage of children with elevated blood lead levels for each county in 2017
+data$Percent_Children_Elevated_BLL_2017 <- 
+  (data$Num_Of_Children_With_EBLL_2017 / data$Population) * 100
+
+# Select the bottom 10 counties (lowest percentage)
+bottom_10_counties <- head(data[order(data$Percent_Children_Elevated_BLL_2017), ], 10)
+
+# Create a ggplot bar plot with unique colors for each county
+ggplot(bottom_10_counties, aes(x = reorder(Name, Percent_Children_Elevated_BLL_2017), 
+                                y = Percent_Children_Elevated_BLL_2017, fill = Name)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top 10 Counties with Lowest Percent of Children with EBLLs in 2017",
+       x = "County",
+       y = "Percentage of Children with EBLLs") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_discrete()  # This ensures unique colors for each county
+
+```
+
+```{r}
+
+# Load required libraries
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+
+# Calculate the aggregate of 'Num_Of_Children_With_EBLL_' columns over the years
+data$Aggregate_Num_Of_Children_EBLL <- rowSums(data[, grep("Num_Of_Children_With_EBLL_", colnames(data))])
+
+# Select relevant columns for correlation
+correlation_data <- data %>%
+  select(Aggregate_Num_Of_Children_EBLL, Per_Capita_Income_2017_2021, Uninsured_Resident_2017_2021)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(correlation_data)
+
+# Melt the correlation matrix for ggplot
+melted_correlation <- melt(correlation_matrix)
+
+# Create a visually pleasing heatmap using ggplot2
+ggplot(melted_correlation, aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0, limit = c(-1,1), space = "Lab", name="Correlation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text.y = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Correlation Heatmap",
+       x = "Variables",
+       y = "Variables")
+
+```
+
+
+```{r}
+# Assuming 'data' is your dataset
+library(dplyr)
+library(ggplot2)
+
+# Create a new variable for the aggregate number of children with EBLL
+data$Aggregate_Num_Of_Children_EBLL <- rowSums(data[, c("Num_Of_Children_With_EBLL_2017", "Num_Of_Children_With_EBLL_2018", "Num_Of_Children_With_EBLL_2019", "Num_Of_Children_With_EBLL_2020", "Num_Of_Children_With_EBLL_2021")], na.rm = TRUE)
+
+# Find the top 5 community areas with the highest aggregate number of children with EBLL
+top_5_areas <- data %>%
+  arrange(desc(Aggregate_Num_Of_Children_EBLL)) %>%
+  slice_head(n = 5) %>%
+  select(Name, Aggregate_Num_Of_Children_EBLL)
+
+# Custom color palette
+custom_colors <- c("#FF9999", "#66B2FF", "#99FF99", "#FFD700", "#FF6347")
+
+# Visualize the top 5 community areas
+ggplot(top_5_areas, aes(x = reorder(Name, -Aggregate_Num_Of_Children_EBLL), y = Aggregate_Num_Of_Children_EBLL, fill = Name)) +
+  geom_bar(stat = "identity", color = "black", show.legend = FALSE) +  # Hide legend for fill
+  geom_text(aes(label = Aggregate_Num_Of_Children_EBLL), vjust = -0.5, size = 3, color = "black") +  # Add data labels
+  scale_fill_manual(values = custom_colors) +
+  labs(title = "Top 5 Community Areas with Highest Number of Children with EBLL from 2017-2021",
+       x = "Community Area",
+       y = "Aggregate Number of Children with EBLL") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.major = element_blank(),  # Remove major grid lines
+        panel.grid.minor = element_blank(),  # Remove minor grid lines
+        panel.border = element_blank(),      # Remove panel borders
+        axis.line = element_line(color = 'black'),  # Add axis lines
+        text = element_text(size = 10))  # Adjust text size
+
+```
+
+```{r}
+# Assuming 'data' is your dataset
+# Replace 'data' with the actual name of your dataset if different
+
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(viridis)
+
+# Define a custom color palette with bright and muted colors
+color_palette <- viridis(5)
+
+
+# Scatter plot with trend line
+scatter_plot <- ggplot(data, aes(x = Aggregate_Num_Of_Children_EBLL, y = Median_Household_Income_.2017_2021, size = Population_2017_2021, color = Population_2017_2021)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "green", size = 1) +  # Add trend line
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "Children with EBL VS Median Household Income",
+       x = "Number of Children with EBLL (2017-2021)",
+       y = "Median Household Income (2017-2021)",
+       size = "Population (2017-2021)",
+       color = "Population (2017-2021)") +
+  theme_minimal() +
+  scale_color_viridis_c(option = "plasma", name = "Population") +  # Specify legend title
+  theme(legend.position = "top", plot.background = element_rect(fill = "white"))  # Set background to white
+
+# Save scatter plot with trend line as an image file with white background
+ggsave("scatter_plot.png", scatter_plot, width = 10, height = 8)  # Adjust width and height as needed
+
+# Linear regression analysis
+linear_model <- lm(Median_Household_Income_.2017_2021 ~ Aggregate_Num_Of_Children_EBLL + Population_2017_2021, data = data)
+
+# Print regression analysis results
+regression_results <- summary(linear_model)
+
+# Extract p-value and R^2 value
+p_value <- regression_results$coefficients[2, 4]
+r_squared <- summary(linear_model)$r.squared
+
+# Print p-value and R^2 value
+cat("P-value:", p_value, "\n")
+cat("R-squared:", r_squared, "\n")
+
+
+# Perform k-means clustering
+k <- 5  # Specify the number of clusters
+kmeans_model <- kmeans(data[, c("Aggregate_Num_Of_Children_EBLL", "Median_Household_Income_.2017_2021", "Population_2017_2021")], centers = k)
+data$cluster <- as.factor(kmeans_model$cluster)
+
+# Print K-Means clustering results
+cat("K-means clustering with", k, "clusters\n")
+cat("Cluster means:\n", kmeans_model$centers, "\n")
+
+kmeans_plot <- ggplot(data, aes(x = Aggregate_Num_Of_Children_EBLL, y = Median_Household_Income_.2017_2021, size = Population_2017_2021, color = cluster)) +
+  geom_point(alpha = 0.7) +
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "K-Means Clustering",
+       x = "Number of Children with EBLL (2017-2021)",
+       y = "Median Household Income (2017-2021)",
+       size = "Population (2017-2021)",
+       color = "Cluster") +
+  theme_minimal() +
+  scale_color_manual(values = color_palette, name = "Cluster") +  # Specify legend title
+  theme(legend.position = "top", plot.background = element_rect(fill = "white"))  # Set background to white
+
+# Save K-Means clustering plot as an image file with white background
+ggsave("kmeans_plot.png", kmeans_plot, width = 10, height = 8)  # Adjust width and height as needed
+
+```
+
+
+
+```{r}
+
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(viridis)
+
+# Define a custom color palette with bright and muted colors
+color_palette <- viridis(5)
+
+scatter_plot <- ggplot(data, aes(x = Aggregate_Num_Of_Children_EBLL, y = Uninsured_Resident_2017_2021, size = Population_2017_2021, color = Population_2017_2021)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "green", size = 1) +  # Add trend line
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "Children with EBL VS Uninsured Residents",
+       x = "Number of Children with EBLL (2017-2021)",
+       y = "Uninsured Residents (2017-2021)",
+       size = "Population (2017-2021)",
+       color = "Population (2017-2021)") +
+  theme_minimal() +
+  scale_color_viridis_c(option = "plasma", name = "Population") +  # Specify legend title
+  theme(legend.position = "bottom")  # Adjust legend position
+
+# Print scatter plot with trend line
+print(scatter_plot)
+
+# Save scatter plot with trend line as an image file
+ggsave("scatter_plot_2.png", scatter_plot, width = 10, height = 8)  # Adjust width and height as needed
+
+
+# Linear regression analysis
+linear_model <- lm(Uninsured_Resident_2017_2021 ~ Aggregate_Num_Of_Children_EBLL + Population_2017_2021, data = data)
+
+# Print regression analysis results
+regression_results <- summary(linear_model)
+
+# Extract p-value and R^2 value
+p_value <- regression_results$coefficients[2, 4]
+r_squared <- summary(linear_model)$r.squared
+
+# Print p-value and R^2 value
+cat("P-value:", p_value, "\n")
+cat("R-squared:", r_squared, "\n")
+
+# Perform k-means clustering
+k <- 5  # Specify the number of clusters
+kmeans_model <- kmeans(data[, c("Aggregate_Num_Of_Children_EBLL", "Uninsured_Resident_2017_2021", "Population_2017_2021")], centers = k)
+data$cluster <- as.factor(kmeans_model$cluster)
+
+# Print K-Means clustering results
+cat("K-means clustering with", k, "clusters\n")
+cat("Cluster means:\n", kmeans_model$centers, "\n")
+
+# Plot K-Means Clustering
+# Plot K-Means Clustering
+kmeans_plot <- ggplot(data, aes(x = Aggregate_Num_Of_Children_EBLL, y = Uninsured_Resident_2017_2021, size = Population_2017_2021, color = cluster)) +
+  geom_point(alpha = 0.7) +
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "K-Means Clustering",
+       x = "Number of Children with EBLL (2017-2021)",
+       y = "Uninsured Resident (2017-2021)",
+       size = "Population (2017-2021)",
+       color = "Cluster") +
+  theme_minimal() +
+  scale_color_manual(values = color_palette, name = "Cluster") +  # Specify legend title
+  theme(legend.position = "bottom")  # Adjust legend position
+
+# Print K-Means clustering plot
+print(kmeans_plot)
+
+# Save K-Means clustering plot as an image file
+ggsave("kmeans_plot_2.png", kmeans_plot, width = 10, height = 8)  # Adjust width and height as needed
+
+```
+
+
+```{r}
+
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(viridis)
+library(cluster)
+
+# Define a custom color palette with bright and muted colors
+color_palette <- viridis(5)
+
+# Scatter plot with trend line
+scatter_plot <- ggplot(data, aes(x = Aggregate_Num_Of_Children_EBLL, y = Social_Vulnerability_Index_2018, size = Population_2017_2021, color = Population_2017_2021)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "green", size = 1) +  # Add trend line
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "Children with EBL VS Social Vulnerability Index",
+       x = "Number of Children with EBLL",
+       y = "Social Vulnerability Index (2018)",
+       size = "Population (2017-2021)",
+       color = "Population (2017-2021)") +
+  theme_minimal() +
+  scale_color_viridis_c(option = "plasma", name = "Population") +  # Specify legend title
+  theme(legend.position = "bottom")  # Adjust legend position
+
+# Print scatter plot with trend line
+print(scatter_plot)
+
+# Save scatter plot with trend line as an image file
+ggsave("scatter_plot_social_vulnerability.png", scatter_plot, width = 10, height = 8)  # Adjust width and height as needed
+
+# Linear regression analysis
+linear_model <- lm(Social_Vulnerability_Index_2018 ~ Aggregate_Num_Of_Children_EBLL + Population_2017_2021, data = data)
+
+# Print regression analysis results
+regression_results <- summary(linear_model)
+
+# Extract p-value and R^2 value
+p_value <- regression_results$coefficients[2, 4]
+r_squared <- summary(linear_model)$r.squared
+
+# Print p-value and R^2 value
+cat("P-value:", p_value, "\n")
+cat("R-squared:", r_squared, "\n")
+
+# Perform k-means clustering
+k <- 5  # Specify the number of clusters
+kmeans_model <- kmeans(data[, c("Aggregate_Num_Of_Children_EBLL", "Social_Vulnerability_Index_2018", "Population_2017_2021")], centers = k)
+data$cluster <- as.factor(kmeans_model$cluster)
+
+# Print K-Means clustering results
+cat("K-means clustering with", k, "clusters\n")
+cat("Cluster means:\n", kmeans_model$centers, "\n")
+
+# Plot K-Means Clustering
+# Plot K-Means Clustering
+kmeans_plot <- ggplot(data, aes(x = Aggregate_Num_Of_Children_EBLL, y = Social_Vulnerability_Index_2018, size = Population_2017_2021, color = cluster)) +
+  geom_point(alpha = 0.7) +
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "K-Means Clustering",
+       x = "Number of Children with EBLL",
+       y = "Social Vulnerability Index (2018)",
+       size = "Population (2017-2021)",
+       color = "Cluster") +
+  theme_minimal() +
+  scale_color_manual(values = color_palette, name = "Cluster") +  # Specify legend title
+  theme(legend.position = "bottom")  # Adjust legend position
+
+# Print K-Means clustering plot
+print(kmeans_plot)
+
+# Save K-Means clustering plot as an image file
+ggsave("kmeans_plot_social_vulnerability.png", kmeans_plot, width = 10, height = 8)  # Adjust width and height as needed
+
+
+```
+
+```{r}
+
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(viridis)
+library(cluster)
+
+# Define a custom color palette with bright and muted colors
+color_palette <- viridis(5)
+
+# Scatter plot with trend line
+scatter_plot <- ggplot(data, aes(x = Aggregate_Num_Of_Children_EBLL, y = Unemployement_Rate_2017_2021, size = Population_2017_2021, color = Population_2017_2021)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "green", size = 1) +  # Add trend line
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "Children with EBL VS Unemployment Rate",
+       x = "Number of Children with EBLL",
+       y = "Unemployment Rate (2017-2021)",
+       size = "Population (2017-2021)",
+       color = "Population (2017-2021)") +
+  theme_minimal() +
+  scale_color_viridis_c(option = "plasma") +  # Apply viridis color palette for continuous variable
+  theme(legend.position = "none")  # Remove legend for size
+
+# Print scatter plot with trend line
+print(scatter_plot)
+
+# Linear regression analysis
+linear_model <- lm(Unemployement_Rate_2017_2021 ~ Aggregate_Num_Of_Children_EBLL + Population_2017_2021, data = data)
+
+# Print regression analysis results
+regression_results <- summary(linear_model)
+
+# Extract p-value and R^2 value
+p_value <- regression_results$coefficients[2, 4]
+r_squared <- summary(linear_model)$r.squared
+
+# Print p-value and R^2 value
+cat("P-value:", p_value, "\n")
+cat("R-squared:", r_squared, "\n")
+
+# Perform k-means clustering
+k <- 5  # Specify the number of clusters
+kmeans_model <- kmeans(data[, c("Aggregate_Num_Of_Children_EBLL", "Unemployement_Rate_2017_2021", "Population_2017_2021")], centers = k)
+data$cluster <- as.factor(kmeans_model$cluster)
+
+# Print K-Means clustering results
+cat("K-means clustering with", k, "clusters\n")
+cat("Cluster means:\n", kmeans_model$centers, "\n")
+
+# Plot K-Means Clustering
+kmeans_plot <- ggplot(data, aes(x = Aggregate_Num_Of_Children_EBLL, y = Unemployement_Rate_2017_2021, size = Population_2017_2021, color = cluster)) +
+  geom_point(alpha = 0.7) +
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "K-Means Clustering",
+       x = "Number of Children with EBLL",
+       y = "Unemployment Rate (2017-2021)",
+       size = "Population (2017-2021)",
+       color = "Cluster") +
+  theme_minimal() +
+  scale_color_manual(values = color_palette) +  # Apply custom color palette for k-means clusters
+  theme(legend.position = "bottom")
+
+# Print K-Means clustering plot
+print(kmeans_plot)
+
+
+```
+
+
+```{r}
+
+library(ggplot2)
+
+# Assuming you have columns like 'Num_Of_Children_With_EBLL_2017', 'Num_Of_Children_With_EBLL_2018', etc.
+
+# Filter data for 'West Garfield Park' county
+west_garfield_park_data <- data[data$Name == "West Garfield Park", ]
+
+# Melt the data to long format for easy plotting
+melted_data <- reshape2::melt(west_garfield_park_data,
+                              id.vars = "Name",
+                              measure.vars = c("Num_Of_Children_With_EBLL_2017", 
+                                               "Num_Of_Children_With_EBLL_2018",
+                                               "Num_Of_Children_With_EBLL_2019",
+                                               "Num_Of_Children_With_EBLL_2020",
+                                               "Num_Of_Children_With_EBLL_2021",
+                                               "Num_Of_Children_With_EBLL_2022"),
+                              variable.name = "Year",
+                              value.name = "Num_Of_Children_With_EBLL")
+melted_data$Year <- gsub("Num_Of_Children_With_EBLL_", "", melted_data$Year)
+
+# Create a time series plot
+ggplot(melted_data, aes(x = as.factor(Year), y = Num_Of_Children_With_EBLL, group = 1)) +
+  geom_line(color = "#1F78B4", size = 1.5) +  # Line color and thickness
+  geom_point(color = "#FB9A99", size = 3, fill = "white", shape = 21) +  # Point color, size, and shape
+  labs(title = "Trend of Number of Children With EBLL Over the Years in West Garfield Park County",
+       x = "Year",
+       y = "Number of Children with EBLL") +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.border = element_blank(),  # Remove panel border
+    axis.line = element_line(colour = "black"),  # Axis line color
+    legend.position = "none"  # Remove legend
+  )
+
+```
+
+```{r}
+# Assuming your dataset is named 'data'
+# Assuming you have columns like 'Num_Of_Children_With_EBLL_2017', 'Num_Of_Children_With_EBLL_2018', etc.
+
+# Filter data for 'Burnside' county
+burnside_data <- data[data$Name == "Austin", ]
+
+# Melt the data to long format for easy plotting
+melted_data_burnside <- reshape2::melt(burnside_data,
+                                       id.vars = "Name",
+                                       measure.vars = c("Num_Of_Children_With_EBLL_2017", 
+                                                        "Num_Of_Children_With_EBLL_2018",
+                                                        "Num_Of_Children_With_EBLL_2019",
+                                                        "Num_Of_Children_With_EBLL_2020",
+                                                        "Num_Of_Children_With_EBLL_2021",
+                                                        "Num_Of_Children_With_EBLL_2022"),
+                                       variable.name = "Year",
+                                       value.name = "Num_Of_Children_With_EBLL")
+
+# Extract only the year from the variable names
+melted_data_burnside$Year <- gsub("Num_Of_Children_With_EBLL_", "", melted_data_burnside$Year)
+
+# Create a time series plot
+ggplot(melted_data_burnside, aes(x = Year, y = Num_Of_Children_With_EBLL, group = 1)) +
+  geom_line(color = "#33A02C", size = 1.5) +  # Line color and thickness
+  geom_point(color = "#FF7F00", size = 3, fill = "white", shape = 21) +  # Point color, size, and shape
+  labs(title = "Trend of Num_Of_Children_With_EBLL Over the Years in Burnside",
+       x = "Year",
+       y = "Number of Children with EBLL") +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.border = element_blank(),  # Remove panel border
+    axis.line = element_line(colour = "black")  # Axis line color
+  )
+
+```
+
+
+```{r}
+
+# Assuming 'historical_data' and 'data' are your datasets
+
+# Extract numeric values from 'historical_data'
+historical_data_numeric <- as.data.frame(lapply(data[, -1], as.numeric))
+
+# Aggregate Number Of Children With EBLL columns
+Num_Of_Children_With_EBLL_data <- rowSums(historical_data_numeric[, grepl("Num_Of_Children_With_EBLL_", colnames(historical_data_numeric))], na.rm = TRUE)
+
+# Specify the columns to aggregate for each factor category
+environmental_columns <- c(
+  "Particulate_.Concentration_.2021",
+  "Particulate_.Concentration_.2020",
+  "Particulate_.Concentration_.2019",
+  "Particulate_.Concentration_.2018",
+  "Particulate_.Concentration_.2017",
+  "Traffic_Intensity_2021",
+  "Traffic_Intensity_2020",
+  "Traffic_Intensity_2019",
+  "Traffic_Intensity_2018",
+  "Traffic_Intensity_2017"
+)
+
+social_vulnerability_index_columns <- c(
+  "Social_Vulnerability_Index_2020",
+  "Social_Vulnerability_Index_2018",
+  "Social_Vulnerability_Index_2016"
+)
+
+economic_columns <- c(
+  "Unemployement_Rate_2017_2021",
+  "Unemployement_Rate_Young_Adults_2017_2021",
+  "Hardship_Index_.2017_2021",
+  "Per_Capita_Income_2017_2021",
+  "Poverty_Rate_2017_2021"
+)
+
+education_columns <- c(
+  "High_School_Grad_Rate_.2017_2021", 
+  "High_School_Grad_Rate_Female_.2017_2021",
+  "High_School_Grad_Rate_Male_.2017_2021",
+  "College_Grad_.Rate_.2017_2021",  
+  "College_Grad_.Rate_F_2017_2021",
+  "College_Grad_.Rate_M_2017_2021",
+  "Preschool_Enrol_.2017_2021",
+  "Preschool_Enrol_.F_2017_2021",   
+  "Preschool_Enrol_.M_2017_2021"   
+)
+
+demographic_columns <- c(
+  "Population", 
+  "Median_Household_Income_.2017_2021",
+  "Per_Capita_Income_2017_2021",
+  "Poverty_Rate_2017_2021"               
+)
+
+# Aggregate environmental columns
+aggregated_environmental_data <- data.frame(
+  Particulate_Concentration = rowSums(historical_data_numeric[, grepl("Particulate_.Concentration_", colnames(historical_data_numeric))], na.rm = TRUE),
+  Traffic_Intensity = rowSums(historical_data_numeric[, grepl("Traffic_Intensity_", colnames(historical_data_numeric))], na.rm = TRUE)
+)
+
+# Aggregate social vulnerability index columns
+aggregated_social_vulnerability_index <- rowSums(data[, social_vulnerability_index_columns], na.rm = TRUE)
+
+  economic_data <- data[, economic_columns]
+  education_data <- data[, education_columns]
+  demographic_data <- data[, demographic_columns]
+
+
+# Combine aggregated columns with Num_Of_Children_With_EBLL_data
+combined_data <- cbind(
+  Num_Of_Children_With_EBLL_data,
+  aggregated_environmental_data,
+  aggregated_social_vulnerability_index,
+  economic_data,
+  education_data,
+  demographic_data
+)
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(combined_data, use = "complete.obs")
+
+# Extract the correlation between Number Of Children With EBLL and aggregated factors
+correlation_with_lead_poisoning <- correlation_matrix["Num_Of_Children_With_EBLL_data", -1]
+
+# Find the top 5 factors with the highest correlation
+top_5_factors <- names(sort(abs(correlation_with_lead_poisoning), decreasing = TRUE))[1:5]
+
+# Print the correlation values
+print("Correlation with Number Of Children With EBLL:")
+print(correlation_with_lead_poisoning)
+
+# Print the top 5 factors
+print("Top 5 Factors with Highest Correlation:")
+print(top_5_factors)
+
+# Visualization - Bar plot for the top 5 factors
+library(ggplot2)
+
+
+# Repeat Num_Of_Children_With_EBLL_data to match the length of top_5_factors
+Num_Of_Children_With_EBLL_values <- rep(Num_Of_Children_With_EBLL_data, each = length(top_5_factors))
+
+# Visualization - Bar plot for the top 5 factors
+library(ggplot2)
+
+
+# Assuming you have the correlation matrix stored in 'correlation_matrix'
+# Assuming you have the top 5 factors stored in 'top_5_factors'
+
+# Extract the correlation values for the top 5 factors
+top_factors_correlation <- correlation_matrix["Num_Of_Children_With_EBLL_data", top_5_factors]
+
+# Create a subset of the correlation matrix for the top 5 factors
+subset_correlation_matrix <- correlation_matrix[top_5_factors, top_5_factors]
+
+# Plot heatmap
+library(ggplot2)
+
+# Convert the correlation matrix to long format
+library(reshape2)
+melted_correlation <- melt(subset_correlation_matrix)
+
+# Plot heatmap
+ggplot(melted_correlation, aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Correlation") +
+  theme_minimal() +
+  labs(
+    title = "Top 5 Factors with Highest Correlation with Number Of Children With EBLL",
+    x = "Factors",
+    y = "Factors"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+```
+
+
+```{r}
+# Assuming your dataset is named 'data'
+# Assuming you have columns like 'Num_Of_Children_With_EBLL_2017', 'Num_Of_Children_With_EBLL_2018', etc.
+
+# Melt the data to long format for easy plotting
+melted_data <- reshape2::melt(data,
+                              id.vars = c("Name", "Uninsured_Resident_2017_2021"),
+                              measure.vars = c("Num_Of_Children_With_EBLL_2017", 
+                                               "Num_Of_Children_With_EBLL_2018",
+                                               "Num_Of_Children_With_EBLL_2019",
+                                               "Num_Of_Children_With_EBLL_2020",
+                                               "Num_Of_Children_With_EBLL_2021"),
+                              variable.name = "Year",
+                              value.name = "Num_Of_Children_With_EBLL")
+
+# Extract only the year from the variable names
+melted_data$Year <- as.numeric(gsub("Num_Of_Children_With_EBLL_", "", melted_data$Year))
+
+# Print the melted data
+print("Melted Data:")
+print(melted_data)
+
+# Filter and identify top 5 community areas with the highest Num_Of_Children_With_EBLL
+top5_communities <- melted_data %>%
+  group_by(Name) %>%
+  summarize(Total_EBLL = sum(Num_Of_Children_With_EBLL, na.rm = TRUE)) %>%
+  top_n(5, Total_EBLL) %>%
+  select(Name)
+
+# Print the top 5 communities
+print("Top 5 Communities:")
+print(top5_communities)
+
+# Filter data for the top 5 community areas
+filtered_data <- melted_data %>%
+  filter(Name %in% top5_communities$Name)
+
+print("Filtered Data:")
+print(filtered_data)
+
+# Create a grouped bar plot
+ggplot(filtered_data, aes(x = factor(Year), y = Uninsured_Resident_2017_2021, fill = Name)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  labs(title = "High School Graduation Rate VS Num of Children with EBLL over years",
+       x = "Year",
+       y = "High School Graduation Rate",
+       fill = "Community Area") +
+  theme_minimal() +
+  theme(
+    legend.position = "top",  # Change legend position
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.border = element_blank(),  # Remove panel border
+    axis.line = element_line(colour = "black")  # Axis line color
+  )
+
+
+print(plot_data)
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Selecting important variables related to lead poisoning trends
+lead_poisoning_columns <- c('Num_Of_Children_With_EBLL_2021', 'Num_Of_Children_With_EBLL_2020',
+                             'Num_Of_Children_With_EBLL_2019', 'Num_Of_Children_With_EBLL_2018', 'Num_Of_Children_With_EBLL_2017')
+
+other_variable <- 'Social_Vulnerability_Index_2020'
+
+# Randomly select 5 community areas
+selected_areas <- sample(data$Name, 5)
+
+# Plotting lead poisoning trends over time for the selected variable and areas
+plot_data <- data %>%
+  filter(Name %in% selected_areas) %>%
+  select(Name, all_of(c(lead_poisoning_columns, other_variable)))
+
+ggplot(plot_data, aes(x = Name, group = 1)) +
+  geom_line(aes(y = .data[[lead_poisoning_columns[1]]], color = "2021"), size = 1, linetype = "solid") +
+  geom_line(aes(y = .data[[lead_poisoning_columns[2]]], color = "2020"), size = 1, linetype = "solid") +
+  geom_line(aes(y = .data[[lead_poisoning_columns[3]]], color = "2019"), size = 1, linetype = "solid") +
+  geom_line(aes(y = .data[[lead_poisoning_columns[4]]], color = "2018"), size = 1, linetype = "solid") +
+  geom_line(aes(y = .data[[lead_poisoning_columns[5]]], color = "2017"), size = 1, linetype = "solid") +
+  labs(title = paste(other_variable, "vs Lead Poisoning Trends"),
+       x = "Community Area",
+       y = other_variable,
+       color = "Year") +
+  scale_color_manual(values = c("2021" = "red", "2020" = "blue", "2019" = "green", "2018" = "orange", "2017" = "purple")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
+```{r}
+
+
+uninsured_variable <- 'Uninsured_Resident_2017_2021'
+
+# Randomly select 5 community areas
+selected_areas <- sample(data$Name, 5)
+
+# Plotting lead poisoning trends over time for the selected variable and areas
+plot_data_uninsured <- data %>%
+  filter(Name %in% selected_areas) %>%
+  select(Name, all_of(c(lead_poisoning_columns, uninsured_variable)))
+
+ggplot(plot_data_uninsured, aes(x = Name, group = 1)) +
+  geom_line(aes(y = .data[[lead_poisoning_columns[1]]], color = "2021"), size = 1, linetype = "solid") +
+  geom_line(aes(y = .data[[lead_poisoning_columns[2]]], color = "2020"), size = 1, linetype = "solid") +
+  geom_line(aes(y = .data[[lead_poisoning_columns[3]]], color = "2019"), size = 1, linetype = "solid") +
+  geom_line(aes(y = .data[[lead_poisoning_columns[4]]], color = "2018"), size = 1, linetype = "solid") +
+  geom_line(aes(y = .data[[lead_poisoning_columns[5]]], color = "2017"), size = 1, linetype = "solid") +
+  labs(title = paste(uninsured_variable, "vs Lead Poisoning Trends"),
+       x = "Community Area",
+       y = uninsured_variable,
+       color = "Year") +
+  scale_color_manual(values = c("2021" = "red", "2020" = "blue", "2019" = "green", "2018" = "orange", "2017" = "purple")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Selecting important variables related to lead poisoning trends
+lead_poisoning_columns <- c('Num_Of_Children_With_EBLL_2021', 'Num_Of_Children_With_EBLL_2020',
+                             'Num_Of_Children_With_EBLL_2019', 'Num_Of_Children_With_EBLL_2018', 'Num_Of_Children_With_EBLL_2017')
+
+hardship_variable <- 'Hardship_Index_.2017_2021'
+
+# Randomly select 5 community areas
+selected_areas <- sample(data$Name, 5)
+
+# Plotting lead poisoning trends over time for the selected variable and areas
+plot_data_hardship <- data %>%
+  filter(Name %in% selected_areas) %>%
+  select(Name, all_of(c(lead_poisoning_columns, hardship_variable)))
+
+ggplot(plot_data_hardship, aes(x = Name, group = 1)) +
+  geom_line(aes(y = .data[[lead_poisoning_columns[1]]], color = "2021"), size = 1, linetype = "solid") +
+  geom_line(aes(y = .data[[lead_poisoning_columns[2]]], color = "2020"), size = 1, linetype = "solid") +
+  geom_line(aes(y = .data[[lead_poisoning_columns[3]]], color = "2019"), size = 1, linetype = "solid") +
+  geom_line(aes(y = .data[[lead_poisoning_columns[4]]], color = "2018"), size = 1, linetype = "solid") +
+  geom_line(aes(y = .data[[lead_poisoning_columns[5]]], color = "2017"), size = 1, linetype = "solid") +
+  labs(title = paste(hardship_variable, "vs Lead Poisoning Trends"),
+       x = "Community Area",
+       y = hardship_variable,
+       color = "Year") +
+  scale_color_manual(values = c("2021" = "red", "2020" = "blue", "2019" = "green", "2018" = "orange", "2017" = "purple")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+```
+
+
+```{r}
+
+# Read the CSV file
+historical_data <- read.csv('/Users/tejaswiniviswanath/Downloads/Chicago Historical lead data.csv')
+
+```
+
+```{r}
+
+str(historical_data)
+summary(historical_data)
+
+```
+
+
+
+```{r}
+
+# Assuming 'historical_data' is your dataset
+
+# Load required libraries
+library(ggplot2)
+library(tidyr)
+
+# Convert data to long format for easier plotting
+historical_data_long <- pivot_longer(historical_data, cols = starts_with("Num_Of_Children_With_EBLL_"), names_to = "Year", values_to = "Num_Of_Children_With_EBLL_Level")
+
+# Convert 'Year' to numeric (assuming it's stored as a character)
+historical_data_long$Year <- as.factor(gsub("Num_Of_Children_With_EBLL_", "", historical_data_long$Year))
+
+# Generate a dynamic color palette based on the number of unique years
+line_colors <- scales::hue_pal()(length(unique(historical_data_long$Year)))
+
+# Plot the time series with enhanced aesthetics
+ggplot(historical_data_long, aes(x = Year, y = Num_Of_Children_With_EBLL_Level, group = 1)) +
+  geom_line(aes(color = Year), linewidth = 1.5) +
+  geom_point(aes(color = Year), size = 2.5) +
+  scale_color_manual(values = line_colors) +
+  labs(title = "Temporal Analysis of Number Of Children With EBLL",
+       x = "Year",
+       y = "Number Of Children With EBLL",
+       caption = "Source: Your Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.caption = element_text(hjust = 0.5),
+        axis.title.y = element_text(margin = margin(r = 10)),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+```
+
+
+```{r}
+
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+
+# Assuming your dataset is named 'historical_data'
+# Assuming you have columns like 'Num_Of_Children_With_EBLL_1996', 'Num_Of_Children_With_EBLL_1997', etc.
+
+# Select one random community area
+selected_area <- sample(historical_data$Name, 1)
+
+# Filter data for the selected community area
+selected_area_data <- historical_data %>%
+  filter(Name == selected_area) %>%
+  select(starts_with("Num_Of_Children_With_EBLL"))
+
+# Melt the data to long format for easy plotting
+melted_data <- reshape2::melt(selected_area_data,
+                              variable.name = "Year",
+                              value.name = "Num_Of_Children_With_EBLL")
+
+# Extract only the year from the variable names
+melted_data$Year <- as.numeric(gsub("Num_Of_Children_With_EBLL_", "", melted_data$Year))
+
+print(selected_area)
+
+# Create a visually appealing time series plot
+ggplot(melted_data, aes(x = Year, y = Num_Of_Children_With_EBLL, group = 1)) +
+  geom_line(color = "skyblue", size = 1.5) +
+  geom_point(color = "blue", size = 3) +
+  labs(title = paste("Number of Children With EBLL Over the Years in", selected_area),
+       x = "Year",
+       y = "Number of Children with EBLL") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.position = "none"  # Remove legend
+  )
+
+```
+
+
+```{r}
+
+# Assuming 'historical_data' and 'data' are your datasets
+
+# Aggregate Number Of Children With EBLL data over the years
+aggregated_lead_poisoning <- rowSums(historical_data[, -1], na.rm = TRUE)
+
+# Select economic and health-related columns for analysis
+factors_columns <- c(
+  "Medicaid_Coverage_2017_2021",
+  "Uninsured_Resident_2017_2021",
+  "Social_Vulnerability_Index_2020",
+  "Unemployement_Rate_2017_2021",
+  "Median_Household_Income_.2017_2021",
+  "Poverty_Rate_2017_2021"
+)
+
+# Check if the specified factor columns exist in the 'data' dataframe
+if (all(factors_columns %in% colnames(data))) {
+  # Subsetting the data
+  factors_data <- data[, factors_columns]
+
+  # Combine aggregated_lead_poisoning with factors_data
+  combined_data <- cbind(aggregated_lead_poisoning, factors_data)
+
+  # Calculate the correlation matrix
+  correlation_matrix <- cor(combined_data, use = "complete.obs")
+
+  # Extract the correlation between Number Of Children With EBLL and economic/health factors
+  correlation_with_lead_poisoning <- correlation_matrix[1, factors_columns]
+
+  # Print the correlation values
+  print(correlation_with_lead_poisoning)
+
+  # Visualization - Heatmap
+  library(ggplot2)
+  library(reshape2)
+
+  ggplot(melt(correlation_matrix), aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile(color = "white") +
+    scale_fill_gradient2(low = "green", high = "purple", mid = 0, midpoint = 0, limit = c(-1, 1), space = "Lab",
+                         name = "Correlation") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 8, hjust = 1)) +
+    labs(title = "Correlation Heatmap - Number Of Children With EBLL and Economic/Health Factors")
+} else {
+  cat("Error: Some factor columns are not present in the 'data' dataframe.\n")
+}
+
+
+```
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:teja2924
+
+```{r}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

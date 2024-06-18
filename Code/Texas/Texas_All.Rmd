@@ -1,0 +1,552 @@
+#Texas 2017 
+```{r}
+library(ggplot2)
+library(corrplot)
+library(magrittr)
+library(dplyr)
+texas_df_17<- read.csv('Desktop/Dpa project/Texas /Texas_2017_Final.csv',header = TRUE)
+colnames(texas_df_17)
+# Top 10 Counties with highest Percent of Children with Elevated Blood Levels
+texas_df_17_top_10 <- texas_df_17[order(-texas_df_17$Number.of.Children.with.EBLLs), ]
+
+
+top_10_counties <- head(texas_df_17_top_10, 10)
+
+library(ggplot2)
+
+ggplot(top_10_counties, aes(x = reorder(County, Number.of.Children.with.EBLLs), y = Number.of.Children.with.EBLLs, fill = County)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = scales::percent(Number.of.Children.with.EBLLs/sum(Number.of.Children.with.EBLLs))), position = position_stack(vjust = 0.5)) +
+  labs(title = "Top 10 Counties with Highest Percent of Children with EBLLs", x = "County", y = "Number of Children with EBLLs") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Bottom 10 Counties (Not used just for reference)
+
+texas_df_17_bottom_10 <- texas_df_17[order(texas_df_17$Number.of.Children.with.EBLLs), ]
+bottom_10_counties <- head(texas_df_17_bottom_10, 10)
+ggplot(bottom_10_counties, aes(x = reorder(County, desc(Number.of.Children.with.EBLLs)), y = Number.of.Children.with.EBLLs, fill = County)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  labs(title = "Bottom 10 Counties with Lowest Number of Children with EBLLs", x = "County", y = "Number of Children with EBLLs") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_text(aes(label = Number.of.Children.with.EBLLs), vjust = -0.5, size = 3, color = "black")
+
+
+#Median Income Comparison between Counties with Lowest and Highest EBLLs
+income_county_data <- rbind(
+  data.frame(Group = "Lowest EBLL", County = factor(bottom_10_counties$County, levels = unique(bottom_10_counties$County)), Income.2017 = bottom_10_counties$Income.2017),
+  data.frame(Group = "Highest EBLL", County = factor(top_10_counties$County, levels = unique(top_10_counties$County)), Income.2017 = top_10_counties$Income.2017)
+)
+
+# Bar graph (Not Recommended)
+ggplot(income_county_data, aes(x = County, y = Income.2017, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Median Income Comparison between Counties with Lowest and Highest EBLLs",
+       x = "County", y = "Median Income") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Scatter Plot(Use this)
+ggplot(income_county_data, aes(x = County, y = Income.2017, color = Group)) +
+  geom_point(size = 4, alpha = 0.7, position = position_jitter(width = 0.3)) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed", color = "black") +
+  labs(title = "Median Income Comparison between Counties with Lowest and Highest EBLLs",
+       x = "County", y = "Median Income") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "top") +
+  scale_color_manual(values = c("Lowest EBLL" = "#4e79a7", "Highest EBLL" = "#e15759")) +
+  scale_fill_manual(values = c("Lowest EBLL" = "#4e79a7", "Highest EBLL" = "#e15759"))
+
+
+
+# Plot the data points and the regression line
+ggplot(texas_df_17, aes(x = Number.of.Children.with.EBLLs, y = Income.2017)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Linear Regression",
+       x = "Number of Children with EBLLs",
+       y = "Income 2019")
+
+model <- lm(Income.2017 ~ Number.of.Children.with.EBLLs, data = texas_df_17)
+# Plot the data points and the regression line
+ggplot(texas_df_17, aes(x = Number.of.Children.with.EBLLs, y = Income.2017)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Linear Regression",
+       x = "Number of Children with EBLLs",
+       y = "Income 2019")
+
+
+# KMeans Clustering for EBLL and Income
+
+set.seed(123) 
+data_for_clustering <- texas_df_17[, c("Number.of.Children.with.EBLLs", "Income.2017")]
+scaled_data <- scale(data_for_clustering)
+
+
+k <- 3
+kmeans_model <- kmeans(scaled_data, centers = k)
+texas_df_17_copy<- texas_df_17
+texas_df_17_copy$cluster <- as.factor(kmeans_model$cluster)
+
+
+
+ggplot(texas_df_17_copy, aes(x = Number.of.Children.with.EBLLs, y = Income.2017, color = cluster)) +
+  geom_point() +
+  labs(title = "K-Means Clustering",
+       x = "Number of Children with EBLLs",
+       y = " Median Income ") +
+  scale_color_discrete(name = "Cluster")
+
+#rate of elev vs percent change 
+
+# Children Tested vs Income and rate of elevation 
+custom_theme <- theme_minimal() +
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5, face = "bold", color = "darkblue"),
+    axis.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+  )
+
+
+ggplot(texas_df_17, aes(x = Number.of.Children.Tested, y = Income.2017, size = Number.of.Children.Tested, color = Rate.of.Elevation)) +
+  geom_point(alpha = 0.7) +
+  scale_color_gradient(low = "blue", high = "orange") +
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "Children Tested vs Income",
+       x = "Number of Children Tested",
+       y = "Income",
+       size = "Number of Children Tested",
+       color = "Rate of Elevation in EBLLs") +
+  custom_theme
+
+# Children Tested vs Income Plot Zoomed in on Clustered Area(Axis Changed)
+custom_theme <- theme_minimal() +
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5, face = "bold", color = "darkblue"),
+    axis.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+  )
+
+ggplot(texas_df_17, aes(x = Number.of.Children.Tested, y = Income.2017, size = Number.of.Children.Tested, color = Rate.of.Elevation)) +
+  geom_point(alpha = 0.7) +
+  scale_color_gradient(low = "blue", high = "orange") +
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "Children Tested vs Income",
+       x = "Number of Children Tested",
+       y = "Income",
+       size = "Number of Children Tested",
+       color = "Rate of Elevation in EBLLs") +
+  custom_theme +
+  coord_cartesian(xlim = c(0, 5000), ylim = c(26000, 85000))
+
+```
+
+# Texas 2018
+```{r}
+library(ggplot2)
+library(corrplot)
+library(magrittr)
+library(dplyr)
+texas_df_18<- read.csv('Desktop/Dpa project/Texas /Texas_2018_Final.csv',header = TRUE)
+colnames(texas_df_18)
+# Top 10 Counties with highest Percent of Children with Elevated Blood Levels
+texas_df_18_top_10 <- texas_df_18[order(-texas_df_18$Number.of.Children.with.EBLLs), ]
+
+
+top_10_counties <- head(texas_df_18_top_10, 10)
+
+library(ggplot2)
+
+ggplot(top_10_counties, aes(x = reorder(County, Number.of.Children.with.EBLLs), y = Number.of.Children.with.EBLLs, fill = County)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = scales::percent(Number.of.Children.with.EBLLs/sum(Number.of.Children.with.EBLLs))), position = position_stack(vjust = 0.5)) +
+  labs(title = "Top 10 Counties with Highest Percent of Children with EBLLs", x = "County", y = "Number of Children with EBLLs") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Bottom 10 Counties (Not used just for reference)
+
+texas_df_18_bottom_10 <- texas_df_18[order(texas_df_18$Number.of.Children.with.EBLLs), ]
+bottom_10_counties <- head(texas_df_18_bottom_10, 10)
+ggplot(bottom_10_counties, aes(x = reorder(County, desc(Number.of.Children.with.EBLLs)), y = Number.of.Children.with.EBLLs, fill = County)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  labs(title = "Bottom 10 Counties with Lowest Number of Children with EBLLs", x = "County", y = "Number of Children with EBLLs") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_text(aes(label = Number.of.Children.with.EBLLs), vjust = -0.5, size = 3, color = "black")
+
+
+#Median Income Comparison between Counties with Lowest and Highest EBLLs
+income_county_data <- rbind(
+  data.frame(Group = "Lowest EBLL", County = factor(bottom_10_counties$County, levels = unique(bottom_10_counties$County)), Income.2018 = bottom_10_counties$Income.2018),
+  data.frame(Group = "Highest EBLL", County = factor(top_10_counties$County, levels = unique(top_10_counties$County)), Income.2018 = top_10_counties$Income.2018)
+)
+
+# Bar graph (Not Recommended)
+ggplot(income_county_data, aes(x = County, y = Income.2018, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Median Income Comparison between Counties with Lowest and Highest EBLLs",
+       x = "County", y = "Median Income") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Scatter Plot(Use this)
+ggplot(income_county_data, aes(x = County, y = Income.2018, color = Group)) +
+  geom_point(size = 4, alpha = 0.7, position = position_jitter(width = 0.3)) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed", color = "black") +
+  labs(title = "Median Income Comparison between Counties with Lowest and Highest EBLLs",
+       x = "County", y = "Median Income") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "top") +
+  scale_color_manual(values = c("Lowest EBLL" = "#4e79a7", "Highest EBLL" = "#e15759")) +
+  scale_fill_manual(values = c("Lowest EBLL" = "#4e79a7", "Highest EBLL" = "#e15759"))
+
+
+
+# Plot the data points and the regression line
+ggplot(texas_df_18, aes(x = Number.of.Children.with.EBLLs, y = Income.2018)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Linear Regression",
+       x = "Number of Children with EBLLs",
+       y = "Income 2019")
+
+model <- lm(Income.2018 ~ Number.of.Children.with.EBLLs, data = texas_df_18)
+# Plot the data points and the regression line
+ggplot(texas_df_18, aes(x = Number.of.Children.with.EBLLs, y = Income.2018)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Linear Regression",
+       x = "Number of Children with EBLLs",
+       y = "Income 2019")
+
+
+# KMeans Clustering for EBLL and Income
+
+set.seed(123) 
+data_for_clustering <- texas_df_18[, c("Number.of.Children.with.EBLLs", "Income.2018")]
+scaled_data <- scale(data_for_clustering)
+
+
+k <- 3
+kmeans_model <- kmeans(scaled_data, centers = k)
+texas_df_18_copy<- texas_df_18
+texas_df_18_copy$cluster <- as.factor(kmeans_model$cluster)
+
+
+
+ggplot(texas_df_18_copy, aes(x = Number.of.Children.with.EBLLs, y = Income.2018, color = cluster)) +
+  geom_point() +
+  labs(title = "K-Means Clustering",
+       x = "Number of Children with EBLLs",
+       y = " Median Income ") +
+  scale_color_discrete(name = "Cluster")
+
+#rate of elev vs percent change 
+
+# Children Tested vs Income and rate of elevation 
+custom_theme <- theme_minimal() +
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5, face = "bold", color = "darkblue"),
+    axis.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+  )
+
+
+ggplot(texas_df_18, aes(x = Number.of.Children.Tested, y = Income.2018, size = Number.of.Children.Tested, color = Rate.of.Elevation)) +
+  geom_point(alpha = 0.7) +
+  scale_color_gradient(low = "blue", high = "orange") +
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "Children Tested vs Income",
+       x = "Number of Children Tested",
+       y = "Income",
+       size = "Number of Children Tested",
+       color = "Rate of Elevation in EBLLs") +
+  custom_theme
+
+# Children Tested vs Income Plot Zoomed in on Clustered Area(Axis Changed)
+custom_theme <- theme_minimal() +
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5, face = "bold", color = "darkblue"),
+    axis.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+  )
+
+ggplot(texas_df_18, aes(x = Number.of.Children.Tested, y = Income.2018, size = Number.of.Children.Tested, color = Rate.of.Elevation)) +
+  geom_point(alpha = 0.7) +
+  scale_color_gradient(low = "blue", high = "orange") +
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "Children Tested vs Income",
+       x = "Number of Children Tested",
+       y = "Income",
+       size = "Number of Children Tested",
+       color = "Rate of Elevation in EBLLs") +
+  custom_theme +
+  coord_cartesian(xlim = c(0, 5000), ylim = c(26000, 85000))
+
+```
+
+# Texas 2019 (LATEST USE THIS FOR ANALYSIS IN CASE MORE GRAPHS)
+```{r}
+library(ggplot2)
+library(corrplot)
+library(magrittr)
+library(dplyr)
+texas_df<- read.csv('Desktop/Dpa project/Texas /Texas_2019_Final.csv',header = TRUE)
+
+# Top 10 Counties with highest Percent of Children with Elevated Blood Levels
+texas_df_top_10 <- texas_df[order(-texas_df$Number.of.Children.with.EBLLs), ]
+
+
+top_10_counties <- head(texas_df_top_10, 10)
+
+library(ggplot2)
+
+ggplot(top_10_counties, aes(x = reorder(County, Number.of.Children.with.EBLLs), y = Number.of.Children.with.EBLLs, fill = County)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = scales::percent(Number.of.Children.with.EBLLs/sum(Number.of.Children.with.EBLLs))), position = position_stack(vjust = 0.5)) +
+  labs(title = "Top 10 Counties with Highest Percent of Children with EBLLs", x = "County", y = "Number of Children with EBLLs") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Bottom 10 Counties (Not used just for reference)
+
+texas_df_bottom_10 <- texas_df[order(texas_df$Number.of.Children.with.EBLLs), ]
+bottom_10_counties <- head(texas_df_bottom_10, 10)
+ggplot(bottom_10_counties, aes(x = reorder(County, desc(Number.of.Children.with.EBLLs)), y = Number.of.Children.with.EBLLs, fill = County)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  labs(title = "Bottom 10 Counties with Lowest Number of Children with EBLLs", x = "County", y = "Number of Children with EBLLs") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_text(aes(label = Number.of.Children.with.EBLLs), vjust = -0.5, size = 3, color = "black")
+
+
+#Median Income Comparison between Counties with Lowest and Highest EBLLs
+income_county_data <- rbind(
+  data.frame(Group = "Lowest EBLL", County = factor(bottom_10_counties$County, levels = unique(bottom_10_counties$County)), Income.2019 = bottom_10_counties$Income.2019),
+  data.frame(Group = "Highest EBLL", County = factor(top_10_counties$County, levels = unique(top_10_counties$County)), Income.2019 = top_10_counties$Income.2019)
+)
+
+# Bar graph (Not Recommended)
+ggplot(income_county_data, aes(x = County, y = Income.2019, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Median Income Comparison between Counties with Lowest and Highest EBLLs",
+       x = "County", y = "Median Income") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Scatter Plot(Use this)
+ggplot(income_county_data, aes(x = County, y = Income.2019, color = Group)) +
+  geom_point(size = 4, alpha = 0.7, position = position_jitter(width = 0.3)) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed", color = "black") +
+  labs(title = "Median Income Comparison between Counties with Lowest and Highest EBLLs",
+       x = "County", y = "Median Income") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "top") +
+  scale_color_manual(values = c("Lowest EBLL" = "#4e79a7", "Highest EBLL" = "#e15759")) +
+  scale_fill_manual(values = c("Lowest EBLL" = "#4e79a7", "Highest EBLL" = "#e15759"))
+
+
+
+# Plot the data points and the regression line
+ggplot(texas_df, aes(x = Number.of.Children.with.EBLLs, y = Income.2019)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Linear Regression",
+       x = "Number of Children with EBLLs",
+       y = "Income 2019")
+
+model <- lm(Income.2019 ~ Number.of.Children.with.EBLLs, data = texas_df)
+# Plot the data points and the regression line
+ggplot(texas_df, aes(x = Number.of.Children.with.EBLLs, y = Income.2019)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Linear Regression",
+       x = "Number of Children with EBLLs",
+       y = "Income 2019")
+
+
+# KMeans Clustering for EBLL and Income
+
+set.seed(123) 
+data_for_clustering <- texas_df[, c("Number.of.Children.with.EBLLs", "Income.2019")]
+scaled_data <- scale(data_for_clustering)
+
+
+k <- 3
+kmeans_model <- kmeans(scaled_data, centers = k)
+texas_df_copy<- texas_df
+texas_df_copy$cluster <- as.factor(kmeans_model$cluster)
+
+
+
+ggplot(texas_df_copy, aes(x = Number.of.Children.with.EBLLs, y = Income.2019, color = cluster)) +
+  geom_point() +
+  labs(title = "K-Means Clustering",
+       x = "Number of Children with EBLLs",
+       y = " Median Income ") +
+  scale_color_discrete(name = "Cluster")
+
+#rate of elev vs percent change 
+
+# Children Tested vs Income and rate of elevation 
+custom_theme <- theme_minimal() +
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5, face = "bold", color = "darkblue"),
+    axis.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+  )
+
+
+ggplot(texas_df, aes(x = Number.of.Children.Tested, y = Income.2019, size = Number.of.Children.Tested, color = Rate.of.Elevation)) +
+  geom_point(alpha = 0.7) +
+  scale_color_gradient(low = "blue", high = "orange") +
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "Children Tested vs Income",
+       x = "Number of Children Tested",
+       y = "Income",
+       size = "Number of Children Tested",
+       color = "Rate of Elevation in EBLLs") +
+  custom_theme
+
+# Children Tested vs Income Plot Zoomed in on Clustered Area(Axis Changed)
+custom_theme <- theme_minimal() +
+  theme(
+    plot.title = element_text(size = 20, hjust = 0.5, face = "bold", color = "darkblue"),
+    axis.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+  )
+
+ggplot(texas_df, aes(x = Number.of.Children.Tested, y = Income.2019, size = Number.of.Children.Tested, color = Rate.of.Elevation)) +
+  geom_point(alpha = 0.7) +
+  scale_color_gradient(low = "blue", high = "orange") +
+  scale_size_continuous(range = c(3, 15)) +
+  labs(title = "Children Tested vs Income",
+       x = "Number of Children Tested",
+       y = "Income",
+       size = "Number of Children Tested",
+       color = "Rate of Elevation in EBLLs") +
+  custom_theme +
+  coord_cartesian(xlim = c(0, 5000), ylim = c(26000, 85000))
+
+```
+
+# TIME SERIES 
+```{r}
+library(tidyverse)
+library(tsibble)
+library(forecast)
+
+ts<-read.csv('Desktop/Time_Series.csv',header = TRUE)
+
+ts$Year<-as.factor(ts$Year)
+
+# Top 10 EBLL Counties
+top_counties <- ts %>%
+  group_by(County) %>%
+  summarise(total_eblls = sum(Number.of.Children.with.EBLLs)) %>%
+  arrange(desc(total_eblls)) %>%
+  slice(1:10) %>%
+  pull(County)
+
+# Filter Top 10 EBLL Counties
+df_top_10 <- ts %>%
+  filter(County %in% top_counties)
+
+# Plotly plot for Top 10 based on EBLL and Year
+plot_ly(df_top_10, x = ~Year, y = ~Number.of.Children.with.EBLLs, color = ~County, type = "scatter", mode = "lines") %>%
+  layout(title = "Top 10 Counties with Highest levels of EBLL",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "Number of Children with EBLLs"))
+
+# Plotly plot for Top 10 Counties with highest EBLL based on Income and Year
+plot_ly(df_top_10, x = ~Year, y = ~Income, color = ~County, type = "scatter", mode = "lines") %>%
+  layout(title = "Median Income of Top 10 Counties with highest EBLL",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "Median Income"))
+
+# Combining both
+plot_ly() %>%
+  add_trace(data = df_top_10, x = ~Year, y = ~Number.of.Children.with.EBLLs, color = ~County,
+            type = "scatter", mode = "lines", name = "Number of Children with EBLLs",
+            hoverinfo = "text", text = ~paste("County: ", County, "<br>Year: ", Year, "<br>EBLLs: ", Number.of.Children.with.EBLLs)) %>%
+  add_trace(data = df_top_10, x = ~Year, y = ~Income, color = ~County,
+            type = "scatter", mode = "lines", name = "Median Income",
+            yaxis = "y2", hoverinfo = "text", text = ~paste("County: ", County, "<br>Year: ", Year, "<br>Income: ", Income)) %>%
+  layout(title = "Top 10 Counties with Highest Levels of EBLL and their Median Income",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "Number of Children with EBLLs", side = "left"),
+         yaxis2 = list(title = "Median Income", side = "right", overlaying = "y", showgrid = FALSE),
+         showlegend = FALSE,
+         hovermode = "closest")
+
+
+# Top 10 Elevation Rate Counties
+top_elevation_counties <- ts %>%
+  group_by(County) %>%
+  summarise(total_elevation = sum(Rate.of.Elevation)) %>%
+  arrange(desc(total_elevation)) %>%
+  slice(1:10)
+
+# Filter Top 10 Elevation Rate Counties
+df_top_10_elevation <- ts %>%
+  filter(County %in% top_elevation_counties$County)
+
+plot_ly(df_top_10_elevation, x = ~Year, y = ~Rate.of.Elevation, color = ~County, type = "scatter", mode = "lines") %>%
+  layout(title = "Top 10 Counties with highest Rate of Elevation",
+         xaxis = list(title = "Year"),
+         yaxis = list(title = "Rate Of Elevation"))
+
+
+
+
+# Forecast Blood Levels in 2020
+ts_subset <- ts[ts$Year %in% c(2017, 2018, 2019), ]
+counties <- unique(ts_subset$County)
+
+forecast_df <- data.frame(County = character(), Forecasted_EBLLs_2020 = numeric(), stringsAsFactors = FALSE)
+
+
+for (county in counties) {
+  county_data <- ts_subset$Number.of.Children.with.EBLLs[ts_subset$County == county]
+  arima_model <- auto.arima(county_data)
+  
+
+  forecast_result <- forecast(arima_model, h = 1)
+  forecast_value <- forecast_result$mean[1]
+  
+  forecast_df <- rbind(forecast_df, data.frame(County = county, Forecasted_EBLLs_2020 = forecast_value))
+}
+
+
+sorted_forecast_df <- forecast_df[order(-forecast_df$Forecasted_EBLLs_2020), ]
+top_10_counties_forecast <- head(sorted_forecast_df, 10)
+
+
+library(ggplot2)
+
+# Create a bar plot for the top 10 counties forecast 
+ggplot(top_10_counties_forecast, aes(x = reorder(County, -Forecasted_EBLLs_2020), y = Forecasted_EBLLs_2020, fill = County)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = scales::percent(Forecasted_EBLLs_2020/sum(Forecasted_EBLLs_2020))), position = position_stack(vjust = 0.5)) +
+  labs(title = "Top 10 Counties with Highest Forecasted Blood Levels in 2020", x = "County", y = "Forecasted Blood Levels") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+
